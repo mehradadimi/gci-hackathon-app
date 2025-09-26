@@ -1,5 +1,5 @@
 import { getCompanyConcept } from './sec';
-import { getCompanyByTicker, getGuidancePairsForCompany, upsertActual } from './repo';
+import { getCompanyByTicker, getGuidancePairsForCompany, upsertActual, getDeliveredSeriesForCompany } from './repo';
 
 function pickAlignedValue(concept: any, fy: number | null, fp: string | null): number | null {
   if (!concept?.units) return null;
@@ -20,6 +20,27 @@ export async function fetchAndStoreActualsForTicker(ticker: string): Promise<voi
   if (!company) throw new Error(`Unknown company: ${ticker}`);
 
   const pairs = await getGuidancePairsForCompany(company.id);
+  // Always ensure we have recent delivered revenue actuals, regardless of guidance presence
+  try {
+    const conceptRev = await getCompanyConcept(company.cik, 'Revenues');
+    const seriesRev = (conceptRev?.units?.USD || []) as any[];
+    for (const v of seriesRev.slice(-4).reverse()) {
+      const fy = typeof v.fy === 'number' ? v.fy : null;
+      const fp = typeof v.fp === 'string' ? v.fp.toUpperCase() : null;
+      const periodId = await ensurePeriodSafe(company.id, fy, fp);
+      await upsertActual({
+        periodId,
+        metric: 'revenue',
+        actualValue: v.val != null ? Math.round((Number(v.val) / 1_000_000) * 100) / 100 : null,
+        units: 'USD_M',
+        xbrlTag: 'us-gaap:Revenues',
+        xbrlApiUrl: `https://data.sec.gov/api/xbrl/companyconcept/CIK${company.cik}/us-gaap/Revenues.json`,
+      });
+    }
+  } catch (e) {
+    // ignore; keep going to fill guided-specific metrics
+  }
+
   for (const p of pairs) {
     if (p.metric === 'revenue') {
       const concept = await getCompanyConcept(company.cik, 'Revenues');
@@ -45,6 +66,23 @@ export async function fetchAndStoreActualsForTicker(ticker: string): Promise<voi
       });
     }
   }
+}
+
+async function ensurePeriodSafe(companyId: number, fy: number | null, fp: string | null): Promise<number> {
+  // lightweight helper to ensure a period row exists without links
+  const { getDb } = await import('./db');
+  const db = getDb();
+  const existing = await db.getAsync<{ id: number }>(
+    `SELECT id FROM periods WHERE company_id = ? AND IFNULL(fy, -1) = IFNULL(?, -1) AND IFNULL(fp, '') = IFNULL(?, '')`,
+    [companyId, fy, fp]
+  );
+  if (existing?.id) return existing.id;
+  await db.runAsync(
+    `INSERT INTO periods (company_id, fy, fp) VALUES (?, ?, ?)`,
+    [companyId, fy, fp]
+  );
+  const row = await db.getAsync<{ id: number }>(`SELECT last_insert_rowid() as id` as any);
+  return (row as any).id as number;
 }
 
 

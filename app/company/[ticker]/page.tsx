@@ -8,8 +8,10 @@ import {
   getLatestPeriodLinks,
   getLatestScoreForCompany,
   getRevenuePairsForCompany,
+  getDeliveredSeriesForCompany,
 } from '@/src/server/repo';
 import QuickChart from 'quickchart-js';
+import { ensureCompanyBasics, warmActualsFromSEC } from './actions';
 
 async function buildTimelineUrl(pairs: Array<{ label: string; promised: number; delivered: number }>): Promise<string | null> {
   if (!pairs.length) return null;
@@ -33,7 +35,9 @@ export default async function CompanyPage({ params }: { params: { ticker: string
   const ticker = params.ticker.toUpperCase();
   let cik10: string | null = null;
   try {
-    cik10 = await getCIKByTicker(ticker);
+    cik10 = await ensureCompanyBasics(ticker);
+    // opportunistically warm delivered actuals so first view has data
+    await warmActualsFromSEC(ticker);
   } catch {
     cik10 = null;
   }
@@ -43,8 +47,13 @@ export default async function CompanyPage({ params }: { params: { ticker: string
   const score = companyId ? await getLatestScoreForCompany(companyId) : undefined;
   const lm = companyId ? await getLatestLanguageMetricsForCompany(companyId) : undefined;
   const links = companyId ? await getLatestPeriodLinks(companyId) : undefined;
-  const pairs = companyId ? await getRevenuePairsForCompany(companyId) : [];
-  const timelineUrl = await buildTimelineUrl(pairs);
+  let pairs = companyId ? await getRevenuePairsForCompany(companyId) : [];
+  let timelineUrl = await buildTimelineUrl(pairs);
+  if (!timelineUrl && companyId) {
+    const deliveredOnly = await getDeliveredSeriesForCompany(companyId);
+    const converted = deliveredOnly.map((d) => ({ label: d.label, promised: d.delivered, delivered: d.delivered }));
+    timelineUrl = await buildTimelineUrl(converted);
+  }
 
   const hasData = Boolean(score || (pairs && pairs.length) || lm);
 
