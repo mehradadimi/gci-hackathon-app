@@ -75,3 +75,7 @@
 - Summary: Improved SEC client to serve stale cache on errors, added skeleton loading and error boundary for company page.
 - Files: src/server/sec.ts, app/company/[ticker]/loading.tsx, app/company/[ticker]/error.tsx
 - Commit: "chore: caching + resilient UX"
+### [2025-09-26 23:00] STEP 14 — Demo Seeds + README
+- Summary: Added README with a 2-minute demo script and a seed endpoint to populate demo tickers; dry-run completed.
+- Files: README.md, app/api/admin/seed-demo/route.ts
+- Commit: "docs: demo seeds + instructions"
