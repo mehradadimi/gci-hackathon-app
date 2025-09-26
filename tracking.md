@@ -67,3 +67,7 @@
 - Summary: Built /admin/import with buttons for each pipeline stage and added API routes. Tested with COST through pipeline; company page loads.
 - Files: app/admin/import/page.tsx, app/api/admin/import/*
 - Commit: "feat: admin import pipeline (E2E)"
+### [2025-09-26 22:35] STEP 12 — QuickChart integration + cache
+- Summary: Integrated QuickChart and added disk cache under /public/charts. Generated charts for multiple tickers; NVDA chart cached and loads instantly.
+- Files: src/server/charts.ts, app/api/admin/charts/generate/route.ts, public/charts/*
+- Commit: "feat: quickchart timelines + cache"
