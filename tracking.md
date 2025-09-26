@@ -43,3 +43,7 @@
 - Summary: Implemented transcript analyzer (fallback to 8‑K doc) and stored language metrics (words total, hedges/1k, uncertainty/1k). Test route prints selected metrics for two tickers.
 - Files: src/server/transcript.ts, app/api/test/transcript/route.ts, src/server/repo.ts
 - Commit: "feat: transcript language metrics"
+### [2025-09-26 21:15] STEP 7 — GCI Scoring
+- Summary: Implemented scoring engine (TRA, CVP, LR → GCI) and score persistence. Test route outputs a table of ticker, fy/fp, tra, cvp, lr, gci, badge for processed tickers.
+- Files: src/server/score.ts, app/api/test/score/route.ts, src/server/repo.ts
+- Commit: "feat: scoring engine (TRA/CVP/LR → GCI)"

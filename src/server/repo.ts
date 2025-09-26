@@ -180,4 +180,86 @@ export async function insertLanguageMetrics(params: {
   );
 }
 
+export type GuidanceActualRow = {
+  period_id: number;
+  fy: number | null;
+  fp: string | null;
+  metric: 'revenue' | 'eps_diluted';
+  guided_mid: number | null;
+  actual_value: number | null;
+};
+
+export async function getGuidanceWithActuals(companyId: number): Promise<GuidanceActualRow[]> {
+  const db = getDb();
+  return db.allAsync<GuidanceActualRow>(
+    `SELECT p.id as period_id, p.fy as fy, p.fp as fp, g.metric as metric,
+            (g.min_value + g.max_value) / 2.0 as guided_mid,
+            a.actual_value as actual_value
+     FROM periods p
+     JOIN guidance g ON g.period_id = p.id
+     JOIN actuals a ON a.period_id = p.id AND a.metric = g.metric
+     WHERE p.company_id = ?
+     ORDER BY COALESCE(p.fy, 0) DESC, CASE UPPER(COALESCE(p.fp, '')) WHEN 'FY' THEN 5 WHEN 'Q4' THEN 4 WHEN 'Q3' THEN 3 WHEN 'Q2' THEN 2 WHEN 'Q1' THEN 1 ELSE 0 END DESC`,
+    [companyId]
+  );
+}
+
+export type CompanyBasic = { id: number; ticker: string };
+
+export async function getCompaniesWithPairs(): Promise<CompanyBasic[]> {
+  const db = getDb();
+  return db.allAsync<CompanyBasic>(
+    `SELECT DISTINCT c.id, c.ticker
+     FROM companies c
+     JOIN periods p ON p.company_id = c.id
+     JOIN guidance g ON g.period_id = p.id
+     JOIN actuals a ON a.period_id = p.id AND a.metric = g.metric
+     ORDER BY c.ticker ASC`
+  );
+}
+
+export type LanguageMetricsRow = {
+  period_id: number;
+  hedges_per_k: number | null;
+  uncertainty_per_k: number | null;
+};
+
+export async function getLatestLanguageMetricsForCompany(companyId: number): Promise<LanguageMetricsRow | undefined> {
+  const db = getDb();
+  return db.getAsync<LanguageMetricsRow>(
+    `SELECT lm.period_id, lm.hedges_per_k, lm.uncertainty_per_k
+     FROM language_metrics lm
+     JOIN periods p ON p.id = lm.period_id
+     WHERE p.company_id = ?
+     ORDER BY p.id DESC
+     LIMIT 1`,
+    [companyId]
+  );
+}
+
+export async function upsertScore(params: {
+  periodId: number;
+  tra: number;
+  cvp: number;
+  lr: number;
+  gci: number;
+  badge: 'High' | 'Medium' | 'Low';
+  rationale: string;
+}): Promise<void> {
+  const db = getDb();
+  await db.runAsync(`DELETE FROM scores WHERE period_id = ?`, [params.periodId]);
+  await db.runAsync(
+    `INSERT INTO scores (period_id, tra, cvp, lr, gci, badge, rationale) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      params.periodId,
+      params.tra,
+      params.cvp,
+      params.lr,
+      params.gci,
+      params.badge,
+      params.rationale,
+    ]
+  );
+}
+
 
