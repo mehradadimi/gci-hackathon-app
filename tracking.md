@@ -31,3 +31,7 @@
 - Summary: Implemented SEC client with 24h disk cache and User-Agent header. Test route fetches submissions and Revenues concept for two CIKs and returns JSON shape summary.
 - Files: src/server/sec.ts, app/api/test/sec/route.ts
 - Commit: "feat: SEC API client + disk cache"
+### [2025-09-26 20:45] STEP 4 — Guidance Parser (8‑K Exhibit 99.1)
+- Summary: Added guidance extractor using Cheerio and regex to find and normalize revenue/EPS ranges; upserts periods/guidance. Test route runs on two non‑AAPL tickers and returns normalized arrays.
+- Files: src/server/guidance.ts, app/api/test/guidance/route.ts, src/server/repo.ts
+- Commit: "feat: guidance extraction (Exhibit 99.1) → DB"
