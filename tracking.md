@@ -23,3 +23,7 @@
 - Files: src/server/db.ts, src/server/repo.ts, app/api/test/companies/route.ts
 - Notes/Risks: Dev server port reuse can cause EADDRINUSE; ensure one instance.
 - Commit: "feat: sqlite schema + repository helpers"
+### [2025-09-26 20:25] STEP 2 — Ticker→CIK Mapping (Core for “any company”)
+- Summary: Added SEC company tickers downloader with 7-day cache, CIK 10-digit mapping, admin force-refresh endpoint, and test endpoint to print CIKs for AAPL/MSFT/NVDA/GOOGL.
+- Files: src/server/cik.ts, app/api/admin/refresh-tickers/route.ts, app/api/test/ciks/route.ts
+- Commit: "feat: ticker→CIK map (company_tickers.json)"
