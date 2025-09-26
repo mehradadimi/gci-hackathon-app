@@ -63,3 +63,7 @@
 - Summary: Added dynamic route /company/[ticker]; loads CIK, DB joins, renders GCI badge, timeline, language chips, breakdown, and source links; shows Import CTA if missing.
 - Files: app/company/[ticker]/page.tsx, src/server/repo.ts
 - Commit: "feat: dynamic company page by ticker"
+### [2025-09-26 22:25] STEP 11 — Admin Import (End‑to‑End)
+- Summary: Built /admin/import with buttons for each pipeline stage and added API routes. Tested with COST through pipeline; company page loads.
+- Files: app/admin/import/page.tsx, app/api/admin/import/*
+- Commit: "feat: admin import pipeline (E2E)"
