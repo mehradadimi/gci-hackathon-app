@@ -155,4 +155,29 @@ export async function getActualPresenceForCompany(companyId: number): Promise<Ac
   );
 }
 
+export async function insertLanguageMetrics(params: {
+  periodId: number;
+  wordsTotal: number;
+  hedgesPerK: number;
+  negationsPerK: number;
+  uncertaintyPerK: number;
+  vaguePerK: number;
+  sourceSection: 'Q&A' | 'Prepared';
+}): Promise<void> {
+  const db = getDb();
+  await db.runAsync(
+    `INSERT INTO language_metrics (period_id, words_total, hedges_per_k, negations_per_k, uncertainty_per_k, vague_per_k, source_section)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      params.periodId,
+      params.wordsTotal,
+      params.hedgesPerK,
+      params.negationsPerK,
+      params.uncertaintyPerK,
+      params.vaguePerK,
+      params.sourceSection,
+    ]
+  );
+}
+
 

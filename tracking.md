@@ -39,3 +39,7 @@
 - Summary: Implemented XBRL actuals fetcher for Revenues and EPS Diluted; aligns by fy/fp; stores normalized actuals with provenance URLs. Test route runs for two tickers and reports presence flags.
 - Files: src/server/actuals.ts, app/api/test/actuals/route.ts, src/server/repo.ts
 - Commit: "feat: actuals via XBRL → DB"
+### [2025-09-26 21:05] STEP 6 — Transcript Q&A + Language Metrics
+- Summary: Implemented transcript analyzer (fallback to 8‑K doc) and stored language metrics (words total, hedges/1k, uncertainty/1k). Test route prints selected metrics for two tickers.
+- Files: src/server/transcript.ts, app/api/test/transcript/route.ts, src/server/repo.ts
+- Commit: "feat: transcript language metrics"
