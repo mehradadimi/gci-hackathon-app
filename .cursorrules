@@ -1,0 +1,57 @@
+# Cursor Rules for GCI
+
+## Purpose
+- You (Cursor) will build the GCI app by strictly following `development-plan.md`.
+- After completing each numbered **STEP**, you must:
+  1) Append a concise entry to `tracking.md` with what you did and files touched.
+  2) Run the tests in that step.
+  3) Make a git commit with the exact message in that step.
+
+## Scope & Focus
+- Keep context small: open/edit only files relevant to the current step.
+- Prefer deterministic parsing (regex, explicit maps). Use AI only for short *rationales*.
+- Never invent data: all numeric outputs must trace to SEC filings or transcripts.
+
+## File Roles (read first)
+- `project-brief.md` — product context and success criteria.
+- `database-design.md` — schema; treat as source of truth.
+- `page-flow.md` — pages and UI states.
+- `development-plan.md` — execution steps (authoritative).
+- `tracking.md` — running log of completed steps + notes.
+
+## Data Sources (authoritative)
+- SEC EDGAR APIs: Submissions & XBRL Company Facts.  
+- Form 8-K Item 2.02 Exhibit 99.1 for guidance text.  
+- Earnings call transcripts (Motley Fool).  
+Follow robots/terms, set SEC **User-Agent** header. :contentReference[oaicite:9]{index=9}
+
+## Operational Rules
+- At each step:
+  - Implement code; run the specified **Test**; fix until passing.
+  - Update `tracking.md` with: date/time, step number, summary (≤3 lines), files changed.
+  - Commit with the exact commit message provided.
+- If the context window is lost or reset:
+  - Re-open `tracking.md` and `development-plan.md`, find the **last completed step**, resume from the **next** step.
+
+## Quality Rules
+- Show all external URLs used (filings, exhibits, transcripts) in code comments or DB fields.
+- Normalize units consistently; document assumptions inside the code.
+- The UI must render without external network calls if the DB is seeded.
+
+## Prohibited
+- Don’t skip steps or re-order them.
+- Don’t use private/paid APIs.
+- Don’t store secrets in the repo.
+
+## Testing
+- Unit-level checks for extractors/parsers.
+- Manual checks for UI states (Loading/Ready/Error).
+- Print concise console logs in Admin page.
+
+## Handoff
+- Before finishing, ensure:
+  - `tracking.md` clearly lists all completed steps.
+  - Seeds exist for the demo tickers.
+  - README contains a 2-minute demo script.
+
+(References: Cursor Rules & Context features; community workflows on rule-driven builds.) :contentReference[oaicite:10]{index=10}
