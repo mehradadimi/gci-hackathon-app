@@ -272,6 +272,64 @@ export async function getLatestLanguageMetricsForCompany(companyId: number): Pro
   );
 }
 
+export type ScoreRow = {
+  period_id: number;
+  tra: number | null;
+  cvp: number | null;
+  lr: number | null;
+  gci: number | null;
+  badge: 'High' | 'Medium' | 'Low' | null;
+  rationale: string | null;
+};
+
+export async function getLatestScoreForCompany(companyId: number): Promise<ScoreRow | undefined> {
+  const db = getDb();
+  return db.getAsync<ScoreRow>(
+    `SELECT s.period_id, s.tra, s.cvp, s.lr, s.gci, s.badge, s.rationale
+     FROM scores s
+     JOIN periods p ON p.id = s.period_id
+     WHERE p.company_id = ?
+     ORDER BY s.id DESC
+     LIMIT 1`,
+    [companyId]
+  );
+}
+
+export async function getRevenuePairsForCompany(companyId: number, limit: number = 4): Promise<Array<{ label: string; promised: number; delivered: number }>> {
+  const db = getDb();
+  const rows = await db.allAsync<{
+    fy: number | null;
+    fp: string | null;
+    guided_mid: number | null;
+    actual_value: number | null;
+  }>(
+    `SELECT p.fy, p.fp, (g.min_value + g.max_value)/2.0 AS guided_mid, a.actual_value
+     FROM periods p
+     JOIN guidance g ON g.period_id = p.id AND g.metric = 'revenue'
+     LEFT JOIN actuals a ON a.period_id = p.id AND a.metric = 'revenue'
+     WHERE p.company_id = ?
+     ORDER BY COALESCE(p.fy, 0) DESC, CASE UPPER(COALESCE(p.fp, '')) WHEN 'FY' THEN 5 WHEN 'Q4' THEN 4 WHEN 'Q3' THEN 3 WHEN 'Q2' THEN 2 WHEN 'Q1' THEN 1 ELSE 0 END DESC
+     LIMIT ?`,
+    [companyId, limit]
+  );
+  return rows
+    .filter((r) => r.guided_mid != null && r.actual_value != null)
+    .map((r) => ({ label: `${r.fy ?? ''}${r.fp ? ' ' + r.fp : ''}`.trim(), promised: Number(r.guided_mid), delivered: Number(r.actual_value) }));
+}
+
+export async function getLatestPeriodLinks(companyId: number): Promise<{ source_8k_url: string | null; exhibit_991_url: string | null; transcript_url: string | null } | undefined> {
+  const db = getDb();
+  return db.getAsync<{ source_8k_url: string | null; exhibit_991_url: string | null; transcript_url: string | null }>(
+    `SELECT p.source_8k_url, p.exhibit_991_url, p.transcript_url
+     FROM periods p
+     LEFT JOIN guidance g ON g.period_id = p.id
+     WHERE p.company_id = ?
+     ORDER BY p.id DESC
+     LIMIT 1`,
+    [companyId]
+  );
+}
+
 export async function upsertScore(params: {
   periodId: number;
   tra: number;

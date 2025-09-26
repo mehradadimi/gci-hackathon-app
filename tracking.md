@@ -59,3 +59,7 @@
 - Summary: Implemented homepage with hero, demo CTA, and ticker search with typeahead backed by /api/tickers.
 - Files: app/page.tsx, app/api/tickers/route.ts
 - Commit: "feat: homepage with ticker search + demo CTA"
+### [2025-09-26 22:10] STEP 10 — Company Page (Dynamic ANY ticker)
+- Summary: Added dynamic route /company/[ticker]; loads CIK, DB joins, renders GCI badge, timeline, language chips, breakdown, and source links; shows Import CTA if missing.
+- Files: app/company/[ticker]/page.tsx, src/server/repo.ts
+- Commit: "feat: dynamic company page by ticker"
