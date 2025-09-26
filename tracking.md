@@ -55,3 +55,7 @@
 - Summary: Added base UI components GciBadge, MetricChips, TimelineChart, and SourceLinks; created /sandbox route to preview components.
 - Files: src/components/GciBadge.tsx, src/components/MetricChips.tsx, src/components/TimelineChart.tsx, src/components/SourceLinks.tsx, app/sandbox/page.tsx
 - Commit: "feat: UI components (badge, chips, timeline, sources)"
+### [2025-09-26 21:55] STEP 9 — Homepage (App Router)
+- Summary: Implemented homepage with hero, demo CTA, and ticker search with typeahead backed by /api/tickers.
+- Files: app/page.tsx, app/api/tickers/route.ts
+- Commit: "feat: homepage with ticker search + demo CTA"
