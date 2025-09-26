@@ -47,3 +47,7 @@
 - Summary: Implemented scoring engine (TRA, CVP, LR → GCI) and score persistence. Test route outputs a table of ticker, fy/fp, tra, cvp, lr, gci, badge for processed tickers.
 - Files: src/server/score.ts, app/api/test/score/route.ts, src/server/repo.ts
 - Commit: "feat: scoring engine (TRA/CVP/LR → GCI)"
+### [2025-09-26 21:25] Data Intake Verified (Steps 2–7)
+- Summary: Added SEC throttle and unified headers, verified CIKs and API shapes, broadened guidance extraction, stored actuals; DB shows non‑empty guidance/actuals. Diagnostic route added.
+- Files: src/server/sec.ts, src/server/guidance.ts, app/api/admin/diagnostic/route.ts
+- Commit: "chore: verify data intake (SEC UA, throttle, guidance, actuals, scoring)"
