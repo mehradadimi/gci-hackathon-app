@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loadCompanyTickers, getCIKByTicker } from '@/src/server/cik';
 import { fetchSecJson, getCompanyConcept, getCompanySubmissions } from '@/src/server/sec';
-import { extractGuidanceFromLatest8K } from '@/src/server/guidance';
+import { extractGuidanceFromLatest8K, debugScanExhibits, extractGuidanceIssuerAware } from '@/src/server/guidance';
 import { fetchAndStoreActualsForTicker } from '@/src/server/actuals';
 import { getDb } from '@/src/server/db';
 
@@ -33,13 +33,20 @@ export async function GET() {
   }
   logs.push({ C_sec_checks: secChecks });
 
-  // D. Guidance parser
+  // D. Guidance parser (show exhibits meta by reading exhibits table)
   const guidanceOut: any = {};
   for (const t of testTickers) {
-    const res = await extractGuidanceFromLatest8K(t);
+    const res = await extractGuidanceIssuerAware(t);
     guidanceOut[t] = res.length ? res : [{ result: 'NO_GUIDANCE_FOUND' }];
   }
   logs.push({ D_guidance: guidanceOut });
+
+  // D2. Exhibit scans and snippets for tuning
+  const exhibitsScan: any = {};
+  for (const t of testTickers) {
+    exhibitsScan[t] = await debugScanExhibits(t);
+  }
+  logs.push({ D_exhibits_scan: exhibitsScan });
 
   // E. Actuals alignment
   for (const t of testTickers) {
@@ -57,7 +64,8 @@ export async function GET() {
   const scores = await q(`SELECT c.ticker, COUNT(*) AS scores_rows FROM scores s JOIN periods p ON p.id=s.period_id JOIN companies c ON c.id=p.company_id GROUP BY 1 ORDER BY 1`);
   const newestGuidance = await q(`SELECT c.ticker, p.fy, p.fp, g.metric, g.min_value as min, g.max_value as max, g.units FROM guidance g JOIN periods p ON p.id=g.period_id JOIN companies c ON c.id=p.company_id ORDER BY g.id DESC LIMIT 3`);
   const newestActuals = await q(`SELECT c.ticker, p.fy, p.fp, a.metric, a.actual_value as value, a.units FROM actuals a JOIN periods p ON p.id=a.period_id JOIN companies c ON c.id=p.company_id ORDER BY a.id DESC LIMIT 3`);
-  logs.push({ G_db: { companies, periods, guidance, actuals, scores, newestGuidance, newestActuals } });
+  const newestExhibits = await q(`SELECT e.period_id, e.ex_no, e.url, e.content_type, e.file_name, e.hint_guidance_on_call FROM exhibits e ORDER BY e.id DESC LIMIT 6`);
+  logs.push({ G_db: { companies, periods, guidance, actuals, scores, newestGuidance, newestActuals, newestExhibits } });
 
   return NextResponse.json({ ok: true, logs });
 }

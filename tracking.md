@@ -51,3 +51,7 @@
 - Summary: Added SEC throttle and unified headers, verified CIKs and API shapes, broadened guidance extraction, stored actuals; DB shows non‑empty guidance/actuals. Diagnostic route added.
 - Files: src/server/sec.ts, src/server/guidance.ts, app/api/admin/diagnostic/route.ts
 - Commit: "chore: verify data intake (SEC UA, throttle, guidance, actuals, scoring)"
+### [2025-09-26 21:40] STEP 8 — UI Foundation (Tailwind + shadcn/ui)
+- Summary: Added base UI components GciBadge, MetricChips, TimelineChart, and SourceLinks; created /sandbox route to preview components.
+- Files: src/components/GciBadge.tsx, src/components/MetricChips.tsx, src/components/TimelineChart.tsx, src/components/SourceLinks.tsx, app/sandbox/page.tsx
+- Commit: "feat: UI components (badge, chips, timeline, sources)"

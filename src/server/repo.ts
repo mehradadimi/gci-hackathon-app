@@ -85,10 +85,14 @@ export async function insertGuidance(params: {
   units: 'USD_M' | 'EPS';
   basis: 'GAAP' | 'non-GAAP' | null;
   extractedText: string;
+  segment?: string | null;
+  sourceUrl?: string | null;
 }): Promise<void> {
   const db = getDb();
+  await db.runAsync(`ALTER TABLE guidance ADD COLUMN source_url TEXT`).catch(() => undefined);
+  await db.runAsync(`ALTER TABLE guidance ADD COLUMN segment TEXT`).catch(() => undefined);
   await db.runAsync(
-    `INSERT INTO guidance (period_id, metric, min_value, max_value, units, basis, extracted_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO guidance (period_id, metric, min_value, max_value, units, basis, extracted_text, segment, source_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       params.periodId,
       params.metric,
@@ -97,6 +101,8 @@ export async function insertGuidance(params: {
       params.units,
       params.basis,
       params.extractedText,
+      params.segment ?? null,
+      params.sourceUrl ?? null,
     ]
   );
 }
@@ -152,6 +158,35 @@ export async function getActualPresenceForCompany(companyId: number): Promise<Ac
      WHERE p.company_id = ?
      ORDER BY p.fy DESC, p.fp DESC`,
     [companyId]
+  );
+}
+
+export async function insertExhibit(params: {
+  periodId: number;
+  exNo: string;
+  url: string;
+  contentType: string;
+  fileName: string;
+  textCachePath: string | null;
+  hintGuidanceOnCall?: boolean;
+}): Promise<void> {
+  const db = getDb();
+  await db.runAsync(
+    `CREATE TABLE IF NOT EXISTS exhibits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      period_id INTEGER NOT NULL,
+      ex_no TEXT,
+      url TEXT,
+      content_type TEXT,
+      file_name TEXT,
+      text_cache_path TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (period_id) REFERENCES periods(id)
+    )`
+  );
+  await db.runAsync(
+    `INSERT INTO exhibits (period_id, ex_no, url, content_type, file_name, text_cache_path, hint_guidance_on_call) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [params.periodId, params.exNo, params.url, params.contentType, params.fileName, params.textCachePath, params.hintGuidanceOnCall ? 1 : 0]
   );
 }
 

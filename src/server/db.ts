@@ -146,6 +146,29 @@ async function migrate(db: SqliteDatabase) {
 
   // Helpful index
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_companies_ticker ON companies(ticker)`);
+
+  // Exhibits metadata for auditability
+  await db.runAsync(
+    `CREATE TABLE IF NOT EXISTS exhibits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      period_id INTEGER NOT NULL,
+      ex_no TEXT,
+      url TEXT,
+      content_type TEXT,
+      file_name TEXT,
+      text_cache_path TEXT,
+      hint_guidance_on_call INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (period_id) REFERENCES periods(id)
+    )`
+  );
+  // Backfill column if table existed earlier
+  try {
+    await db.runAsync(`ALTER TABLE exhibits ADD COLUMN hint_guidance_on_call INTEGER`);
+  } catch (e) {
+    // ignore if exists
+  }
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_exhibits_period ON exhibits(period_id)`);
 }
 
 
