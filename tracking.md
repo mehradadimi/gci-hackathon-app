@@ -27,3 +27,7 @@
 - Summary: Added SEC company tickers downloader with 7-day cache, CIK 10-digit mapping, admin force-refresh endpoint, and test endpoint to print CIKs for AAPL/MSFT/NVDA/GOOGL.
 - Files: src/server/cik.ts, app/api/admin/refresh-tickers/route.ts, app/api/test/ciks/route.ts
 - Commit: "feat: ticker→CIK map (company_tickers.json)"
+### [2025-09-26 20:35] STEP 3 — SEC Client (Submissions & XBRL)
+- Summary: Implemented SEC client with 24h disk cache and User-Agent header. Test route fetches submissions and Revenues concept for two CIKs and returns JSON shape summary.
+- Files: src/server/sec.ts, app/api/test/sec/route.ts
+- Commit: "feat: SEC API client + disk cache"
