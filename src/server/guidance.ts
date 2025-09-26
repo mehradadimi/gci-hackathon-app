@@ -47,6 +47,35 @@ function detectBasis(text: string): 'GAAP' | 'non-GAAP' | null {
   return null;
 }
 
+async function findExhibit991Url(cik10: string, accession: string, primaryDoc: string): Promise<string> {
+  const base = `https://www.sec.gov/Archives/edgar/data/${Number(cik10)}/${accession.replace(/-/g, '')}`;
+  const indexUrl = `${base}/${accession.replace(/-/g, '')}-index.html`;
+  const resp = await fetch(indexUrl, { headers: { 'User-Agent': process.env.SEC_UA || 'GCI-Hackathon/1.0 (contact: you@example.com)' } });
+  if (!resp.ok) {
+    return `${base}/${primaryDoc}`;
+  }
+  const html = await resp.text();
+  const $ = loadHtml(html);
+  // Look for a row with Type EX-99.1 and an href
+  let href: string | null = null;
+  $('table a[href]').each((_, el) => {
+    const link = $(el);
+    const txt = link.text().trim();
+    const row = link.closest('tr');
+    const type = row.find('td').eq(3).text().trim();
+    if (/EX-?99\.1/i.test(txt) || /EX-?99\.1/i.test(type)) {
+      href = link.attr('href') || null;
+      return false;
+    }
+  });
+  if (href) {
+    if (href.startsWith('http')) return href;
+    if (href.startsWith('/')) return `https://www.sec.gov${href}`;
+    return `${base}/${href}`;
+  }
+  return `${base}/${primaryDoc}`;
+}
+
 export async function extractGuidanceFromLatest8K(ticker: string): Promise<NormalizedGuidance[]> {
   // 1) Get submissions, find latest 8-K with Item 2.02
   const company = await getCompanyByTicker(ticker);
@@ -62,70 +91,67 @@ export async function extractGuidanceFromLatest8K(ticker: string): Promise<Norma
     primaryDoc: recent.primaryDocument[i],
     filingDate: recent.filingDate[i],
   }));
-  // naive: take the first; real impl could scan for Item 2.02 via filing details
-  const entry = entries[0];
-  if (!entry) return [];
-
-  const filingBase = `https://www.sec.gov/Archives/edgar/data/${Number(company.cik)}/${entry.accession.replace(/-/g, '')}`;
-  const primaryUrl = `${filingBase}/${entry.primaryDoc}`;
-
-  // 2) Fetch exhibit html (fallback to primary doc) and parse for guidance cues
-  const htmlResp = await fetch(primaryUrl, {
-    headers: { 'User-Agent': process.env.SEC_UA || 'GCI-Hackathon/1.0 (contact: you@example.com)' },
-  });
-  if (!htmlResp.ok) return [];
-  const html = await htmlResp.text();
-  const $ = loadHtml(html);
-  const text = $('body').text().replace(/\s+/g, ' ').trim();
-
-  const candidates = text.split(/\.(\s|$)/).map((s) => s.trim()).filter(Boolean);
   const results: NormalizedGuidance[] = [];
-
-  for (const sentence of candidates) {
-    if (!/(guidance|outlook|expects|sees)/i.test(sentence)) continue;
-    const revenue = parseDollarRangeToUsdM(sentence);
-    const eps = parseEpsRange(sentence);
-    const basis = detectBasis(sentence);
-
-    const fyMatch = sentence.match(/FY\s*(\d{4})/i);
-    const fy = fyMatch ? parseInt(fyMatch[1], 10) : null;
-    const fpMatch = sentence.match(/\b(Q[1-4]|FY)\b/i);
-    const fp = fpMatch ? fpMatch[1].toUpperCase() : null;
-
-    const periodId = await ensurePeriod({
-      companyId: company.id,
-      fy,
-      fp,
-      periodEnd: null,
-      source8kUrl: primaryUrl,
-      exhibit991Url: primaryUrl,
-      transcriptUrl: null,
+  for (const entry of entries.slice(0, 5)) {
+    const exhibitUrl = await findExhibit991Url(company.cik, entry.accession, entry.primaryDoc);
+    const htmlResp = await fetch(exhibitUrl, {
+      headers: { 'User-Agent': process.env.SEC_UA || 'GCI-Hackathon/1.0 (contact: you@example.com)' },
     });
+    if (!htmlResp.ok) continue;
+    const html = await htmlResp.text();
+    const $ = loadHtml(html);
+    const text = $('body').text().replace(/\s+/g, ' ').trim();
 
-    if (revenue) {
-      await insertGuidance({
-        periodId,
-        metric: 'revenue',
-        minValue: revenue.min,
-        maxValue: revenue.max,
-        units: 'USD_M',
-        basis,
-        extractedText: sentence,
+    const candidates = text.split(/\.(\s|$)/).map((s) => s.trim()).filter(Boolean);
+
+    for (const sentence of candidates) {
+      if (!/(guidance|outlook|expects|sees)/i.test(sentence)) continue;
+      const revenue = parseDollarRangeToUsdM(sentence);
+      const eps = parseEpsRange(sentence);
+      const basis = detectBasis(sentence);
+
+      const fyMatch = sentence.match(/FY\s*(\d{4})/i);
+      const fy = fyMatch ? parseInt(fyMatch[1], 10) : null;
+      const fpMatch = sentence.match(/\b(Q[1-4]|FY)\b/i);
+      const fp = fpMatch ? fpMatch[1].toUpperCase() : null;
+
+      const periodId = await ensurePeriod({
+        companyId: company.id,
+        fy,
+        fp,
+        periodEnd: null,
+        source8kUrl: `https://www.sec.gov/ixviewer/doc?action=display&source=${encodeURIComponent(entry.accession)}`,
+        exhibit991Url: exhibitUrl,
+        transcriptUrl: null,
       });
-      results.push({ period: { fy, fp }, metric: 'revenue', min: revenue.min, max: revenue.max, units: 'USD_M', basis, extracted_text: sentence, exhibit_991_url: primaryUrl });
+
+      if (revenue) {
+        await insertGuidance({
+          periodId,
+          metric: 'revenue',
+          minValue: revenue.min,
+          maxValue: revenue.max,
+          units: 'USD_M',
+          basis,
+          extractedText: sentence,
+        });
+        results.push({ period: { fy, fp }, metric: 'revenue', min: revenue.min, max: revenue.max, units: 'USD_M', basis, extracted_text: sentence, exhibit_991_url: exhibitUrl });
+      }
+      if (eps) {
+        await insertGuidance({
+          periodId,
+          metric: 'eps_diluted',
+          minValue: eps.min,
+          maxValue: eps.max,
+          units: 'EPS',
+          basis,
+          extractedText: sentence,
+        });
+        results.push({ period: { fy, fp }, metric: 'eps_diluted', min: eps.min, max: eps.max, units: 'EPS', basis, extracted_text: sentence, exhibit_991_url: exhibitUrl });
+      }
     }
-    if (eps) {
-      await insertGuidance({
-        periodId,
-        metric: 'eps_diluted',
-        minValue: eps.min,
-        maxValue: eps.max,
-        units: 'EPS',
-        basis,
-        extractedText: sentence,
-      });
-      results.push({ period: { fy, fp }, metric: 'eps_diluted', min: eps.min, max: eps.max, units: 'EPS', basis, extracted_text: sentence, exhibit_991_url: primaryUrl });
-    }
+
+    if (results.length > 0) break;
   }
 
   return results;

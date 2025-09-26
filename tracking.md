@@ -35,3 +35,7 @@
 - Summary: Added guidance extractor using Cheerio and regex to find and normalize revenue/EPS ranges; upserts periods/guidance. Test route runs on two non‑AAPL tickers and returns normalized arrays.
 - Files: src/server/guidance.ts, app/api/test/guidance/route.ts, src/server/repo.ts
 - Commit: "feat: guidance extraction (Exhibit 99.1) → DB"
+### [2025-09-26 20:55] STEP 5 — Actuals Fetcher (XBRL Company Facts)
+- Summary: Implemented XBRL actuals fetcher for Revenues and EPS Diluted; aligns by fy/fp; stores normalized actuals with provenance URLs. Test route runs for two tickers and reports presence flags.
+- Files: src/server/actuals.ts, app/api/test/actuals/route.ts, src/server/repo.ts
+- Commit: "feat: actuals via XBRL → DB"

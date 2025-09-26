@@ -101,4 +101,58 @@ export async function insertGuidance(params: {
   );
 }
 
+export type GuidedPairRow = {
+  period_id: number;
+  fy: number | null;
+  fp: string | null;
+  metric: 'revenue' | 'eps_diluted';
+};
+
+export async function getGuidancePairsForCompany(companyId: number): Promise<GuidedPairRow[]> {
+  const db = getDb();
+  return db.allAsync<GuidedPairRow>(
+    `SELECT p.id as period_id, p.fy as fy, p.fp as fp, g.metric as metric
+     FROM periods p
+     JOIN guidance g ON g.period_id = p.id
+     WHERE p.company_id = ?
+     ORDER BY p.fy DESC, p.fp DESC`,
+    [companyId]
+  );
+}
+
+export async function upsertActual(params: {
+  periodId: number;
+  metric: 'revenue' | 'eps_diluted';
+  actualValue: number | null;
+  units: 'USD_M' | 'EPS';
+  xbrlTag: string;
+  xbrlApiUrl: string;
+}): Promise<void> {
+  const db = getDb();
+  await db.runAsync(`DELETE FROM actuals WHERE period_id = ? AND metric = ?`, [params.periodId, params.metric]);
+  await db.runAsync(
+    `INSERT INTO actuals (period_id, metric, actual_value, units, xbrl_tag, xbrl_api_url) VALUES (?, ?, ?, ?, ?, ?)`,
+    [params.periodId, params.metric, params.actualValue, params.units, params.xbrlTag, params.xbrlApiUrl]
+  );
+}
+
+export type ActualPresenceRow = {
+  period_id: number;
+  metric: 'revenue' | 'eps_diluted';
+  has_actual: number; // 0|1
+};
+
+export async function getActualPresenceForCompany(companyId: number): Promise<ActualPresenceRow[]> {
+  const db = getDb();
+  return db.allAsync<ActualPresenceRow>(
+    `SELECT p.id as period_id, g.metric as metric,
+            EXISTS(SELECT 1 FROM actuals a WHERE a.period_id = p.id AND a.metric = g.metric) as has_actual
+     FROM periods p
+     JOIN guidance g ON g.period_id = p.id
+     WHERE p.company_id = ?
+     ORDER BY p.fy DESC, p.fp DESC`,
+    [companyId]
+  );
+}
+
 
