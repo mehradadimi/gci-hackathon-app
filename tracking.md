@@ -71,3 +71,7 @@
 - Summary: Integrated QuickChart and added disk cache under /public/charts. Generated charts for multiple tickers; NVDA chart cached and loads instantly.
 - Files: src/server/charts.ts, app/api/admin/charts/generate/route.ts, public/charts/*
 - Commit: "feat: quickchart timelines + cache"
+### [2025-09-26 22:45] STEP 13 — Caching & Error UX
+- Summary: Improved SEC client to serve stale cache on errors, added skeleton loading and error boundary for company page.
+- Files: src/server/sec.ts, app/company/[ticker]/loading.tsx, app/company/[ticker]/error.tsx
+- Commit: "chore: caching + resilient UX"

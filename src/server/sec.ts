@@ -67,6 +67,12 @@ async function readCache(key: string, ttlMs: number): Promise<string | undefined
   return fs.readFileSync(p, 'utf-8');
 }
 
+async function readCacheStale(key: string): Promise<string | undefined> {
+  const p = cachePathFor(key);
+  if (!fs.existsSync(p)) return undefined;
+  return fs.readFileSync(p, 'utf-8');
+}
+
 async function writeCache(key: string, data: string): Promise<void> {
   const p = cachePathFor(key);
   fs.writeFileSync(p, data);
@@ -81,7 +87,11 @@ export async function getCompanySubmissions(cik10: string): Promise<any> {
 
   const url = `https://data.sec.gov/submissions/CIK${cik10}.json`;
   const { status, json } = await fetchSecJson(url);
-  if (status < 200 || status >= 300) throw new Error(`SEC submissions error ${status}`);
+  if (status < 200 || status >= 300) {
+    const stale = await readCacheStale(key);
+    if (stale) return JSON.parse(stale);
+    throw new Error(`SEC submissions error ${status}`);
+  }
   await writeCache(key, JSON.stringify(json));
   return json;
 }
@@ -93,7 +103,11 @@ export async function getCompanyConcept(cik10: string, tag: string): Promise<any
 
   const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik10}/us-gaap/${encodeURIComponent(tag)}.json`;
   const { status, json } = await fetchSecJson(url);
-  if (status < 200 || status >= 300) throw new Error(`SEC concept error ${status}`);
+  if (status < 200 || status >= 300) {
+    const stale = await readCacheStale(key);
+    if (stale) return JSON.parse(stale);
+    throw new Error(`SEC concept error ${status}`);
+  }
   await writeCache(key, JSON.stringify(json));
   return json;
 }
